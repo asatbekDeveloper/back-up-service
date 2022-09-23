@@ -2,7 +2,6 @@ package com.example.backupservice.entity;
 
 
 import lombok.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.*;
 
@@ -24,12 +23,17 @@ public class DocumentRestore {
 
     private String fileDescription;
 
-    private Long userId;
-
-    private Long commonId;
-
-    private String userType;
+    private String alfrescoRootPath;
 
     private String algorithm;
+
+    private String documentName;
+
+    private String documentVersion;
+
+
+    private Long documentSize;
+
+    private String contentType;
 
 }

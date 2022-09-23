@@ -1,7 +1,6 @@
 package com.example.backupservice.entity;
 
 
-import com.sun.xml.internal.ws.api.server.SDDocument;
 import lombok.*;
 
 import javax.persistence.*;
@@ -21,10 +20,6 @@ public class BackUp {
     private Long id;
 
     private String documentId;
-
-    private String documentVersion;
-
-    private String alfrescoRootPath;
 
     private LocalDateTime deletedAt;
 
