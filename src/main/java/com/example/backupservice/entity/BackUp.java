@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @Setter
 @Getter
 @Builder
+@ToString
 @Entity
 @Table(name = "back_up")
 public class BackUp {

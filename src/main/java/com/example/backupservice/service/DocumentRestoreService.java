@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -21,8 +24,12 @@ public class DocumentRestoreService {
         this.repository = repository;
     }
 
+    @SneakyThrows
     public DocumentRestore save(BackUpCreateDTO dto) {
 
+        System.out.println("dto = " + dto);
+
+//        String version = dto.getDocumentId().substring(dto.getDocumentId().indexOf(';') + 1);
 
         Optional<DocumentRestore> optionalDocumentRestore = repository.findByDocumentNameAndContentTypeAndDocumentSizeAndAlfrescoRootPathAndDocumentVersion(
                 dto.getFile().getOriginalFilename(),
@@ -32,39 +39,63 @@ public class DocumentRestoreService {
                 dto.getDocumentVersion()
         );
 
-        if (optionalDocumentRestore.isEmpty()) {
+//        System.out.println("optionalDocumentRestore.get() = " + optionalDocumentRestore.get());
 
-            String filePath = fileUploadToServer(dto.getFile(), dto.getAlfrescoRootPath());
+        if (optionalDocumentRestore.isPresent()) {
 
-            DocumentRestore documentRestore = DocumentRestore.builder()
-                    .documentName(dto.getFile().getOriginalFilename())
-                    .documentSize(dto.getFile().getSize())
-                    .contentType(dto.getFile().getContentType())
-                    .filePath(filePath)
-                    .fileDescription(dto.getDocumentDescription())
-                    .alfrescoRootPath(dto.getAlfrescoRootPath())
-                    .algorithm(dto.getAlgorithm())
-                    .build();
+            return optionalDocumentRestore.get();
+//            InputStream inputStream = dto.getFile().getInputStream();
+//
+//            String filePath1 = optionalDocumentRestore.get().getFilePath();
+//            File file = new File(filePath1);
+//
+//            try (InputStream inputStream1 = new FileInputStream(file)) {
+//
+//                if (inputStream1.equals(inputStream)) return optionalDocumentRestore.get();
+//
+//            } catch (Exception e) {
+//                throw new RuntimeException(e.getMessage());
+//            }
 
-
-            return repository.save(documentRestore);
 
         }
+        return getDocumentRestore(dto);
 
-        return optionalDocumentRestore.get();
 
     }
 
-    @SneakyThrows
-    private String fileUploadToServer(MultipartFile file, String rootPath) {
+    private DocumentRestore getDocumentRestore(BackUpCreateDTO dto) {
+        String filePath = fileUploadToServer(dto.getFile(), dto.getAlfrescoRootPath(), dto.getDocumentId());
 
-        File directory = new File("C:/Users/Asus/Desktop/back-up/" + rootPath);
+        DocumentRestore documentRestore = DocumentRestore.builder()
+                .documentName(dto.getFile().getOriginalFilename())
+                .documentSize(dto.getFile().getSize())
+                .contentType(dto.getFile().getContentType())
+                .filePath(filePath)
+                .fileDescription(dto.getDocumentDescription())
+                .alfrescoRootPath(dto.getAlfrescoRootPath())
+                .algorithm(dto.getAlgorithm())
+                .documentVersion(dto.getDocumentVersion())
+                .build();
+
+
+        return repository.save(documentRestore);
+    }
+
+    @SneakyThrows
+    private String fileUploadToServer(MultipartFile file, String rootPath, String documentId) {
+
+
+        String documentIdWithoutVersion = documentId.substring(0, documentId.indexOf(';'));
+        String extension = Objects.requireNonNull(file.getOriginalFilename()).substring(file.getOriginalFilename().lastIndexOf('.') + 1);
+
+        File directory = new File("C:/Users/Asus/Desktop/back-up/" + rootPath + "/" + documentIdWithoutVersion);
 
         if (!directory.exists()) directory.mkdirs();
 
-        file.transferTo(new File(directory.getAbsolutePath() + "/" + file.getOriginalFilename()));
+        file.transferTo(new File(directory.getAbsolutePath() + "/" + documentId + "." + extension));
 
-        return directory.getAbsolutePath() + "/" + file.getOriginalFilename();
+        return directory.getAbsolutePath() + "/" + documentId + "." + extension;
     }
 
 

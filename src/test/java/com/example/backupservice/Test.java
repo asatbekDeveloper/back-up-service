@@ -3,11 +3,15 @@ package com.example.backupservice;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.tomcat.util.http.fileupload.FileItem;
+import org.apache.tomcat.util.http.fileupload.disk.DiskFileItem;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
 
 import java.io.File;
 import java.io.FileInputStream;
+
 
 public class Test {
 
@@ -25,12 +29,15 @@ public class Test {
                 file.getName(), "application/pdf", IOUtils.toByteArray(input));
 
         String extension = FilenameUtils.getExtension(file.getName());
+
+        System.out.println("extension = " + extension);
         String baseName = FilenameUtils.getBaseName(file.getName());
-        multipartFile.transferTo(new File(directory.getAbsolutePath() + "/" + baseName+"-1.1."+extension));
+//        multipartFile.transferTo(new File(directory.getAbsolutePath() + "/" + baseName+"-1.1."+extension));
 
         String s = directory.getAbsolutePath() + "/" + multipartFile.getOriginalFilename();
         System.out.println("s = " + s);
 
     }
+
 
 }
