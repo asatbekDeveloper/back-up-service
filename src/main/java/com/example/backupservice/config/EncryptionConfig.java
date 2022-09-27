@@ -4,6 +4,7 @@ import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -27,6 +28,11 @@ public class EncryptionConfig {
         generator.initialize(2048);
 
         return generator.genKeyPair();
+    }
+
+    @Bean
+    public RestTemplate restTemplate(){
+        return new RestTemplate();
     }
 
 }

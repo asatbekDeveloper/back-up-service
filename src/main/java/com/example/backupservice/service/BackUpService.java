@@ -1,13 +1,16 @@
 package com.example.backupservice.service;
 
+import com.example.backupservice.config.AlfrescoConfig;
 import com.example.backupservice.config.EncryptionConfig;
 import com.example.backupservice.dto.*;
 import com.example.backupservice.entity.BackUp;
 import com.example.backupservice.entity.DocumentRestore;
 import com.example.backupservice.repository.BackUpRepository;
 import lombok.SneakyThrows;
+import org.apache.chemistry.opencmis.client.api.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -29,11 +32,20 @@ public class BackUpService {
 
     private final EncryptionConfig encryptionConfig;
 
+    private final AlfrescoService alfrescoService;
+
+    private final RestTemplate restTemplate;
+
+    private final AlfrescoConfig alfrescoConfig;
+
     @Autowired
-    public BackUpService(BackUpRepository repository, DocumentRestoreService restoreService, EncryptionConfig encryptionConfig) {
+    public BackUpService(BackUpRepository repository, DocumentRestoreService restoreService, EncryptionConfig encryptionConfig, AlfrescoService alfrescoService, RestTemplate restTemplate, AlfrescoConfig alfrescoConfig) {
         this.repository = repository;
         this.restoreService = restoreService;
         this.encryptionConfig = encryptionConfig;
+        this.alfrescoService = alfrescoService;
+        this.restTemplate = restTemplate;
+        this.alfrescoConfig = alfrescoConfig;
     }
 
     public void save(BackUpCreateDTO dto) {
@@ -70,7 +82,6 @@ public class BackUpService {
 
         Optional<List<BackUp>> optionalList = repository.findAllByDeletedAtIsBetween(dto.getBegin(), dto.getEnd());
 
-        RestTemplate restTemplate = new RestTemplate();
         String restoreURI = "http://localhost:9090/v1/file/restore";
 
         if (optionalList.isEmpty()) throw new RuntimeException("Files not found to restore");
@@ -181,7 +192,51 @@ public class BackUpService {
                 .peek(backUp -> backUp.setDeletedAt(LocalDateTime.now())).toList();
 
         repository.saveAll(backUps);
-        
+
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+
+    @Scheduled(cron = "0/40 * * * * ?")
+    public void watchAlfrescoFileExist() {
+        List<BackUp> backUps = repository.findAll();
+
+        List<BackUp> backUpsChanged = backUps.stream()
+                .filter(backUp -> backUp.getDeletedAt()==null)
+                .filter(backUp -> alfrescoService.findByDocumentId(backUp.getDocumentId())==null)
+                .peek(backUp -> backUp.setDeletedAt(LocalDateTime.now()))
+                .toList();
+
+        System.out.println("backUpsChanged.size() = " + backUpsChanged.size());
+
+        backUpsChanged.forEach(System.out::println);
+
+        repository.saveAll(backUpsChanged);
+
+
+        List<DocumentRepositoryDeleteDTO> docs = backUpsChanged.stream().map(backUp -> {
+
+            String alfrescoRootPath = backUp.getDocumentRestoreId().getAlfrescoRootPath();
+            String withoutUserId = alfrescoRootPath.substring(0, alfrescoRootPath.lastIndexOf("/"));
+
+            String userId = alfrescoRootPath.substring(alfrescoRootPath.lastIndexOf("/") + 1);
+
+            String commonId = withoutUserId.substring(withoutUserId.lastIndexOf("/") + 1);
+
+            String withoutCommonId = withoutUserId.substring(0, withoutUserId.lastIndexOf("/"));
+
+            String userType = withoutCommonId.substring(withoutCommonId.indexOf("/") + 1);
+
+            return new DocumentRepositoryDeleteDTO(Long.valueOf(commonId), backUp.getDocumentRestoreId().getFileDescription(), backUp.getDocumentRestoreId().getDocumentName(), userId, backUp.getDocumentRestoreId().getDocumentSize(), userType, backUp.getDocumentId());
+        }).toList();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        String reposDeleteURI = "http://localhost:9090/v1/file/delete_repo";
+
+        HttpEntity<List<DocumentRepositoryDeleteDTO>> entity = new HttpEntity<>(docs, headers);
+        restTemplate.exchange(reposDeleteURI, HttpMethod.POST, entity, Void.class);
+
     }
 }
