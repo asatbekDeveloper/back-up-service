@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.TimeZone;
 
 @RestController
 @RequestMapping("/v1/back_up")
@@ -49,6 +52,8 @@ public class BackUpController {
 
     @PostMapping("/restore")
     public ResponseEntity<Void> restoreFiles(@RequestBody RestoreTimeDTO dto) {
+        System.out.println("dto = " + dto);
+        System.out.println("TimeZone.getDefault() = " + TimeZone.getDefault());
         return service.restore(dto);
     }
 

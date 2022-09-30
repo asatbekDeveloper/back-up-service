@@ -20,11 +20,12 @@ public interface BackUpRepository extends JpaRepository<BackUp, Long> {
     List<BackUp> findAllByDocumentIdIn(List<String> documentId);
 
     @Query("select b from BackUp b where b.documentRestoreId.alfrescoRootPath=:alfrescoRootPath and b.documentRestoreId.documentName=:fileName and b.deletedAt is not null")
-    List<BackUp> findAllByDocumentName(String alfrescoRootPath, String fileName);
-
-
-    Optional<BackUp> findByDocumentIdAndDeletedAtIsNotNull(String documentId);
+    BackUp findAllByDocumentName(String alfrescoRootPath, String fileName);
 
 
 
+    List<BackUp>  findByDocumentIdStartsWithAndDeletedAtIsNotNull(String documentId);
+
+    @Query("select b from BackUp b where b.documentId like :documentIdWithoutVersion% and b.deletedAt is not null ")
+    List<BackUp> findAllByDocumentIdWithoutVersion(String documentIdWithoutVersion);
 }

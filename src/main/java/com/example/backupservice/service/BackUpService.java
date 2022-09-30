@@ -79,8 +79,20 @@ public class BackUpService {
 
     public ResponseEntity<Void> restoreWithName(RestoreWithNameDTO dto) {
 
-        String alfrescoRootPath = "%s/%s/%d/%d".formatted(alfrescoConfig.baseFolder,dto.getDocumentType(), dto.getCommonId(), dto.getUserId());
-        List<BackUp> backUps = repository.findAllByDocumentName(alfrescoRootPath, dto.getDocumentName());
+        String alfrescoRootPath = "%s/%s/%d/%d".formatted(alfrescoConfig.baseFolder, dto.getDocumentType(), dto.getCommonId(), dto.getUserId());
+        BackUp backUp = repository.findAllByDocumentName(alfrescoRootPath, dto.getDocumentName());
+
+        String documentVersion = backUp.getDocumentRestoreId().getDocumentVersion();
+
+        String documentIdWithoutVersion = backUp.getDocumentId().substring(0, backUp.getDocumentId().indexOf(";"));
+
+        List<BackUp> backUps = new ArrayList<>();
+        if (!documentVersion.equals("1.0")) {
+            backUps = repository.findAllByDocumentIdWithoutVersion(documentIdWithoutVersion);
+        } else {
+            backUps.add(backUp);
+        }
+
 
         ResponseEntity<Void> response = callWithRestTemplateToUploadServer(backUps);
 
@@ -92,10 +104,12 @@ public class BackUpService {
 
     public ResponseEntity<Void> restoreWithDocumentId(String documentId) {
 
-        Optional<BackUp> optionalBackUp = repository.findByDocumentIdAndDeletedAtIsNotNull(documentId);
 
-        if (optionalBackUp.isEmpty()) throw new RuntimeException("Back up not found");
-        ResponseEntity<Void> response = callWithRestTemplateToUploadServer(List.of(optionalBackUp.get()));
+        documentId = documentId.substring(0, documentId.indexOf(";"));
+
+        List<BackUp> backUps = repository.findByDocumentIdStartsWithAndDeletedAtIsNotNull(documentId);
+
+        ResponseEntity<Void> response = callWithRestTemplateToUploadServer(backUps);
 
         System.out.println("response.getStatusCode() = " + response.getStatusCode());
 
@@ -209,6 +223,7 @@ public class BackUpService {
 
 
     public ResponseEntity<Void> changeStatusDeletedAt(BackUpChangeDeleteTimeDTO dto) {
+
 
         List<BackUp> optionalBackUpDocument = repository.findAllByDocumentIdIn(dto.getDocumentId());
 
