@@ -7,7 +7,6 @@ import com.example.backupservice.entity.BackUp;
 import com.example.backupservice.entity.DocumentRestore;
 import com.example.backupservice.repository.BackUpRepository;
 import lombok.SneakyThrows;
-import org.apache.chemistry.opencmis.client.api.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -37,6 +36,7 @@ public class BackUpService {
     private final RestTemplate restTemplate;
 
     private final AlfrescoConfig alfrescoConfig;
+
 
     @Autowired
     public BackUpService(BackUpRepository repository, DocumentRestoreService restoreService, EncryptionConfig encryptionConfig, AlfrescoService alfrescoService, RestTemplate restTemplate, AlfrescoConfig alfrescoConfig) {
@@ -77,22 +77,55 @@ public class BackUpService {
     }
 
 
+    public ResponseEntity<Void> restoreWithName(RestoreWithNameDTO dto) {
+
+        String alfrescoRootPath = "%s/%s/%d/%d".formatted(alfrescoConfig.baseFolder,dto.getDocumentType(), dto.getCommonId(), dto.getUserId());
+        List<BackUp> backUps = repository.findAllByDocumentName(alfrescoRootPath, dto.getDocumentName());
+
+        ResponseEntity<Void> response = callWithRestTemplateToUploadServer(backUps);
+
+        System.out.println("response.getStatusCode() = " + response.getStatusCode());
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+
+    }
+
+    public ResponseEntity<Void> restoreWithDocumentId(String documentId) {
+
+        Optional<BackUp> optionalBackUp = repository.findByDocumentIdAndDeletedAtIsNotNull(documentId);
+
+        if (optionalBackUp.isEmpty()) throw new RuntimeException("Back up not found");
+        ResponseEntity<Void> response = callWithRestTemplateToUploadServer(List.of(optionalBackUp.get()));
+
+        System.out.println("response.getStatusCode() = " + response.getStatusCode());
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+
     @SneakyThrows
     public ResponseEntity<Void> restore(RestoreTimeDTO dto) {
 
         Optional<List<BackUp>> optionalList = repository.findAllByDeletedAtIsBetween(dto.getBegin(), dto.getEnd());
 
-        String restoreURI = "http://localhost:9090/v1/file/restore";
 
         if (optionalList.isEmpty()) throw new RuntimeException("Files not found to restore");
 
 
+        ResponseEntity<Void> response = callWithRestTemplateToUploadServer(optionalList.get());
+
+        System.out.println("response.getStatusCode() = " + response.getStatusCode());
+
+        return null;
+    }
+
+    private ResponseEntity<Void> callWithRestTemplateToUploadServer(List<BackUp> optionalList) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
 
         List<RestoreDTO> restoreDTOS = new ArrayList<>();
-        for (BackUp backUp : optionalList.get()) {
+        for (BackUp backUp : optionalList) {
 
             String alfrescoRootPath = backUp.getDocumentRestoreId().getAlfrescoRootPath();
             String withoutUserId = alfrescoRootPath.substring(0, alfrescoRootPath.lastIndexOf("/"));
@@ -143,12 +176,8 @@ public class BackUpService {
 
         HttpEntity<List<RestoreDTO>> entity = new HttpEntity<>(restoreDTOS, headers);
 
-
-        ResponseEntity<Void> response = restTemplate.exchange(restoreURI, HttpMethod.POST, entity, Void.class);
-
-        System.out.println("response.getStatusCode() = " + response.getStatusCode());
-
-        return null;
+        String restoreURI = "http://localhost:9090/v1/file/restore";
+        return restTemplate.exchange(restoreURI, HttpMethod.POST, entity, Void.class);
     }
 
     @SneakyThrows
@@ -202,8 +231,8 @@ public class BackUpService {
         List<BackUp> backUps = repository.findAll();
 
         List<BackUp> backUpsChanged = backUps.stream()
-                .filter(backUp -> backUp.getDeletedAt()==null)
-                .filter(backUp -> alfrescoService.findByDocumentId(backUp.getDocumentId())==null)
+                .filter(backUp -> backUp.getDeletedAt() == null)
+                .filter(backUp -> alfrescoService.findByDocumentId(backUp.getDocumentId()) == null)
                 .peek(backUp -> backUp.setDeletedAt(LocalDateTime.now()))
                 .toList();
 
@@ -239,4 +268,6 @@ public class BackUpService {
         restTemplate.exchange(reposDeleteURI, HttpMethod.POST, entity, Void.class);
 
     }
+
+
 }

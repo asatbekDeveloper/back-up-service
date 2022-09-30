@@ -63,8 +63,6 @@ public class DocumentRestoreService {
     }
 
 
-
-
     private DocumentRestore getDocumentRestore(BackUpCreateDTO dto) {
         String filePath = fileUploadToServer(dto.getFile(), dto.getAlfrescoRootPath(), dto.getDocumentId());
 

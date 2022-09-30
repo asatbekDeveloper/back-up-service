@@ -10,16 +10,21 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface BackUpRepository extends JpaRepository<BackUp,Long> {
+public interface BackUpRepository extends JpaRepository<BackUp, Long> {
 
 
-    Optional<BackUp>  findByDocumentRestoreId(DocumentRestore documentRestoreId);
-
-
+    Optional<BackUp> findByDocumentRestoreId(DocumentRestore documentRestoreId);
 
     Optional<List<BackUp>> findAllByDeletedAtIsBetween(LocalDateTime begin, LocalDateTime end);
 
-    Optional<BackUp> findByDocumentId(String documentId);
-
     List<BackUp> findAllByDocumentIdIn(List<String> documentId);
+
+    @Query("select b from BackUp b where b.documentRestoreId.alfrescoRootPath=:alfrescoRootPath and b.documentRestoreId.documentName=:fileName and b.deletedAt is not null")
+    List<BackUp> findAllByDocumentName(String alfrescoRootPath, String fileName);
+
+
+    Optional<BackUp> findByDocumentIdAndDeletedAtIsNotNull(String documentId);
+
+
+
 }

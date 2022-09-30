@@ -19,7 +19,7 @@ public class RestoreDTO {
 
     private Long commonId;//maybe amendment or dispute
 
-    private String userType;
+    private String documentType;
 
     private String algorithm;
 
