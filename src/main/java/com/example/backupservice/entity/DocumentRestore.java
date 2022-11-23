@@ -31,7 +31,6 @@ public class DocumentRestore {
 
     private String documentVersion;
 
-
     private Long documentSize;
 
     private String contentType;

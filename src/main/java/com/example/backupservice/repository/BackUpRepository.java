@@ -15,7 +15,7 @@ public interface BackUpRepository extends JpaRepository<BackUp, Long> {
 
     Optional<BackUp> findByDocumentRestoreId(DocumentRestore documentRestoreId);
 
-    Optional<List<BackUp>> findAllByDeletedAtIsBetween(LocalDateTime begin, LocalDateTime end);
+    List<BackUp> findAllByDeletedAtIsBetween(LocalDateTime begin, LocalDateTime end);
 
     List<BackUp> findAllByDocumentIdIn(List<String> documentId);
 

@@ -11,7 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
 @ToString
 public class BackUpCreateDTO {
 
-
     private String documentId;
 
     private String documentVersion;
@@ -19,7 +18,6 @@ public class BackUpCreateDTO {
     private MultipartFile file;
 
     private String alfrescoRootPath;
-
 
     private String documentDescription;
 
